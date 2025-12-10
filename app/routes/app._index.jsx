@@ -36,50 +36,6 @@ export const loader = async ({ request }) => {
   return settings;
 };
 
-// 2. Action: Save the config to Shop Metafields
-// export const action = async ({ request }) => {
-//   const { admin } = await authenticate.admin(request);
-//   const formData = await request.formData();
-
-//   const products = JSON.parse(formData.get("products"));
-//   const percentOff = formData.get("percentOff");
-//   const quantity = formData.get("quantity");
-
-//   const value = JSON.stringify({ products, percentOff, quantity });
-
-//   // Get Shop ID dynamically
-//   const shopResponse = await admin.graphql(`{ shop { id } }`);
-//   const shopId = (await shopResponse.json()).data.shop.id;
-
-//   const response = await admin.graphql(
-//     `#graphql
-//     mutation CreateMetafieldDefinition($definition: MetafieldsSetInput!) {
-//       metafieldsSet(metafields: [$definition]) {
-//         metafields {
-//           key
-//           value
-//         }
-//         userErrors {
-//           field
-//           message
-//         }
-//       }
-//     }`,
-//     {
-//       variables: {
-//         definition: {
-//           namespace: "volume_discount",
-//           key: "rules",
-//           ownerId: shopId,
-//           type: "json",
-//           value,
-//         },
-//       },
-//     }
-//   );
-
-//   return { status: "success" };
-// };
 
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -126,10 +82,6 @@ export const action = async ({ request }) => {
     console.error("Metafield errors:", metafieldJson.data.metafieldsSet.userErrors);
     return { status: "error", errors: metafieldJson.data.metafieldsSet.userErrors };
   }
-
-  // ---------------------------------------------------------
-  // 2. CHECK & CREATE DISCOUNT (Corrected Logic)
-  // ---------------------------------------------------------
   
   const functionId = process.env.SHOPIFY_VOLUME_DISCOUNT_FN_ID; 
 
