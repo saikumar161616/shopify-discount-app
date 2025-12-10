@@ -8,6 +8,9 @@ A Shopify App that enables "Buy X, Get Y% Off" promotions. It uses **Shopify Fun
 ## 🚀 Quick Start
 
 ### 1. Install Dependencies
+
+Node Version used : Node version : v20.19.6
+
 ```bash
 npm install
 ````
