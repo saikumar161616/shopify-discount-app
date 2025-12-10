@@ -1,55 +1,53 @@
-// import { useState, useEffect } from "react";
-// import { useFetcher, useLoaderData } from "react-router";
-// import {
-//   Page,
-//   Layout,
-//   Card,
-//   Button,
-//   TextField,
-//   BlockStack,
-//   Text,
-// } from "@shopify/polaris";
-// import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-// import { authenticate } from "../shopify.server";
+import { useState, useEffect } from "react";
+import { useFetcher, useLoaderData } from "react-router";
+import {
+  Page,
+  Layout,
+  Card,
+  Button,
+  TextField,
+  BlockStack,
+  Text,
+  InlineError,
+} from "@shopify/polaris";
+import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+import { authenticate } from "../shopify.server";
 
-// // 1. Loader: Read the current config from Shop Metafields
-// export const loader = async ({ request }) => {
-//   const { admin } = await authenticate.admin(request);
+// 1. Loader: Read the current config from Shop Metafields
+export const loader = async ({ request }) => {
+  const { admin } = await authenticate.admin(request);
 
-//   const response = await admin.graphql(
-//     `#graphql
-//     query getSettings {
-//       shop {
-//         metafield(namespace: "volume_discount", key: "rules") {
-//           value
-//         }
-//       }
-//     }`
-//   );
+  const response = await admin.graphql(
+    `#graphql
+    query getSettings {
+      shop {
+        metafield(namespace: "volume_discount", key: "rules") {
+          value
+        }
+      }
+    }`
+  );
 
-//   const data = await response.json();
-//   const settings = data.data.shop.metafield?.value
-//     ? JSON.parse(data.data.shop.metafield.value)
-//     : {};
+  const data = await response.json();
+  const settings = data.data.shop.metafield?.value
+    ? JSON.parse(data.data.shop.metafield.value)
+    : {};
 
-//   return settings;
-// };
+  return settings;
+};
 
-// // 2. Action: Save the config to Shop Metafields
+// 2. Action: Save the config to Shop Metafields
 // export const action = async ({ request }) => {
 //   const { admin } = await authenticate.admin(request);
 //   const formData = await request.formData();
 
 //   const products = JSON.parse(formData.get("products"));
 //   const percentOff = formData.get("percentOff");
-
-//   // CHANGED: We now read quantity from the form instead of hardcoding '2'
 //   const quantity = formData.get("quantity");
 
-//   // CHANGED: Saved "quantity" into the JSON object
 //   const value = JSON.stringify({ products, percentOff, quantity });
 
-//   // Get Shop ID dynamically to ensure the ownerId is correct
+//   // Get Shop ID dynamically
 //   const shopResponse = await admin.graphql(`{ shop { id } }`);
 //   const shopId = (await shopResponse.json()).data.shop.id;
 
@@ -83,167 +81,6 @@
 //   return { status: "success" };
 // };
 
-// export default function Index() {
-//   const loaderData = useLoaderData();
-//   const fetcher = useFetcher();
-//   const shopify = useAppBridge();
-
-//   const [percent, setPercent] = useState(loaderData?.percentOff || "10");
-//   // CHANGED: Added state for Quantity (defaults to 2 if not set)
-//   const [quantity, setQuantity] = useState(loaderData?.quantity || "2");
-//   const [selectedProducts, setSelectedProducts] = useState(loaderData?.products || []);
-
-//   // VALIDATION LOGIC: Limit Percent to 1 - 80
-//   const handlePercentChange = (newValue) => {
-//     // 1. Allow user to clear the field (empty string)
-//     if (newValue === "") {
-//       setPercent("");
-//       return;
-//     }
-
-//     const val = parseInt(newValue, 10);
-
-//     // 2. Only update if it's a number and within 1-80
-//     if (!isNaN(val) && val >= 1 && val <= 80) {
-//       setPercent(newValue);
-//     }
-//   };
-
-//   const selectProducts = async () => {
-//     const selected = await shopify.resourcePicker({
-//       type: "product",
-//       action: "select",
-//       multiple: true,
-//       selectionIds: selectedProducts.map(id => ({ id })),
-//     });
-
-//     if (selected) {
-//       setSelectedProducts(selected.map((p) => p.id));
-//     }
-//   };
-
-//   const submit = () => {
-//     fetcher.submit(
-//       {
-//         products: JSON.stringify(selectedProducts),
-//         percentOff: percent,
-//         quantity: quantity, // CHANGED: Sending quantity to backend
-//       },
-//       { method: "POST" }
-//     );
-//   };
-
-//   useEffect(() => {
-//     if (fetcher.state === "idle" && fetcher.data?.status === "success") {
-//       shopify.toast.show("Discount rules saved");
-//     }
-//   }, [fetcher.state, shopify]);
-
-//   return (
-//     <Page>
-//       <TitleBar title="Volume Discount Config" />
-//       <Layout>
-//         <Layout.Section>
-//           <Card>
-//             <BlockStack gap="400">
-//               <Text variant="headingMd" as="h2">
-//                 Configure Volume Discount
-//               </Text>
-
-//               <BlockStack gap="200">
-//                 <Text>Select Products</Text>
-//                 <Button onClick={selectProducts}>
-//                   {selectedProducts.length > 0
-//                     ? `Selected ${selectedProducts.length} products`
-//                     : "Choose Products"}
-//                 </Button>
-//               </BlockStack>
-
-//               {/* CHANGED: Added Quantity Input Field */}
-//               <TextField
-//                 label="Buy Quantity (e.g. Buy 2, Buy 3)"
-//                 type="number"
-//                 value={quantity}
-//                 onChange={setQuantity}
-//                 autoComplete="off"
-//               />
-
-//               {/* <TextField
-//                 label="Discount Percentage"
-//                 type="number"
-//                 value={percent}
-//                 onChange={setPercent}
-//                 suffix="%"
-//                 autoComplete="off"
-//               /> */}
-
-//               <TextField
-//                 label="Discount Percentage (1-80%)"
-//                 type="number"
-//                 value={percent}
-//                 onChange={handlePercentChange} // <--- USE THE VALIDATION HANDLER
-//                 suffix="%"
-//                 autoComplete="off"
-//                 min={1} // HTML hint
-//                 max={80} // HTML hint
-//                 helpText="Enter a value between 1 and 80"
-//               />
-
-//               <Button variant="primary" onClick={submit} loading={fetcher.state === "submitting"}>
-//                 Save Configuration
-//               </Button>
-//             </BlockStack>
-//           </Card>
-//         </Layout.Section>
-//       </Layout>
-//     </Page>
-//   );
-// }
-
-
-
-
-
-
-import { useState, useEffect } from "react";
-import { useFetcher, useLoaderData } from "react-router";
-import {
-  Page,
-  Layout,
-  Card,
-  Button,
-  TextField,
-  BlockStack,
-  Text,
-  InlineError, 
-} from "@shopify/polaris";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
-
-// 1. Loader: Read the current config from Shop Metafields
-export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-
-  const response = await admin.graphql(
-    `#graphql
-    query getSettings {
-      shop {
-        metafield(namespace: "volume_discount", key: "rules") {
-          value
-        }
-      }
-    }`
-  );
-
-  const data = await response.json();
-  const settings = data.data.shop.metafield?.value
-    ? JSON.parse(data.data.shop.metafield.value)
-    : {};
-
-  return settings;
-};
-
-// 2. Action: Save the config to Shop Metafields
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
@@ -251,14 +88,13 @@ export const action = async ({ request }) => {
   const products = JSON.parse(formData.get("products"));
   const percentOff = formData.get("percentOff");
   const quantity = formData.get("quantity");
-
   const value = JSON.stringify({ products, percentOff, quantity });
 
-  // Get Shop ID dynamically
+  // 1. SAVE METAFIELDS (Existing Logic)
   const shopResponse = await admin.graphql(`{ shop { id } }`);
   const shopId = (await shopResponse.json()).data.shop.id;
 
-  const response = await admin.graphql(
+  const metafieldResponse = await admin.graphql(
     `#graphql
     mutation CreateMetafieldDefinition($definition: MetafieldsSetInput!) {
       metafieldsSet(metafields: [$definition]) {
@@ -284,6 +120,87 @@ export const action = async ({ request }) => {
       },
     }
   );
+
+  const metafieldJson = await metafieldResponse.json();
+  if (metafieldJson.data?.metafieldsSet?.userErrors?.length > 0) {
+    console.error("Metafield errors:", metafieldJson.data.metafieldsSet.userErrors);
+    return { status: "error", errors: metafieldJson.data.metafieldsSet.userErrors };
+  }
+
+  // ---------------------------------------------------------
+  // 2. CHECK & CREATE DISCOUNT (Corrected Logic)
+  // ---------------------------------------------------------
+  
+  const functionId = process.env.SHOPIFY_VOLUME_DISCOUNT_FN_ID; 
+
+  // Query existing discounts
+  const existingDiscountsResponse = await admin.graphql(
+    `#graphql
+    query GetDiscountNodes {
+      discountNodes(first: 50, reverse: true) {
+        nodes {
+          id
+          discount {
+            ... on DiscountAutomaticApp {
+              title
+              appDiscountType {
+                functionId
+              }
+            }
+          }
+        }
+      }
+    }`
+  );
+
+  const existingDiscountsData = await existingDiscountsResponse.json();
+  const nodes = existingDiscountsData.data.discountNodes.nodes;
+
+  const existingDiscount = nodes.find(node => 
+    node.discount?.appDiscountType?.functionId === functionId
+  );
+
+  if (!existingDiscount) {
+    console.log("Discount doesn't exist. Creating new one...");
+    
+    const createResponse = await admin.graphql(
+      `#graphql
+      mutation CreateAutomaticDiscount($discount: DiscountAutomaticAppInput!) {
+        discountAutomaticAppCreate(automaticAppDiscount: $discount) {
+          # FIXED FIELD NAME BELOW:
+          automaticAppDiscount {
+            discountId
+            title
+            status
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }`,
+      {
+        variables: {
+          discount: {
+            title: "Volume Discount", 
+            functionId: functionId, 
+            startsAt: new Date().toISOString(),
+          },
+        },
+      }
+    );
+
+    const createData = await createResponse.json();
+    const userErrors = createData.data?.discountAutomaticAppCreate?.userErrors;
+    
+    if (userErrors?.length > 0) {
+      console.error("Discount creation failed:", userErrors);
+      return { status: "error", errors: userErrors };
+    }
+    console.log("Discount created successfully");
+  } else {
+    console.log("Discount already exists, skipping creation.");
+  }
 
   return { status: "success" };
 };
@@ -317,7 +234,7 @@ export default function Index() {
   const handleQuantityChange = (newValue) => {
     setQuantity(newValue);
     if (newValue && parseInt(newValue) > 0) {
-       if (errors.quantity) setErrors({ ...errors, quantity: null });
+      if (errors.quantity) setErrors({ ...errors, quantity: null });
     }
   }
 
