@@ -1,21 +1,48 @@
-{% assign avg_rating = block.settings.product.metafields.demo.avg_rating.value | round %}
-<span style="color:{{ block.settings.colour }}">
-  {% render 'stars', rating: avg_rating %}
-</span>
-{% if avg_rating >= 4 %}
-  <br>
-  <img src="{{ "thumbs-up.png" | asset_img_url: '15x' }}" height="15" width="15" loading="lazy">
-  {{ 'ratings.home.recommendationText' | t }}
-{% endif %}
+<div class="volume-discount-widget" style="display:none; padding: 15px; background: #f4f6f8; border: 1px dashed #008060; margin: 20px 0; border-radius: 4px;">
+  <strong>🎉 Special Offer:</strong> Buy <span id="discount-qty">2</span>, get <span id="discount-percent"></span>% off!
+</div>
+
+<script>
+  (function() {
+    // 1. Read the rules saved in the Admin UI
+    var rules = {{ shop.metafields.volume_discount.rules.value | json }};
+    
+    // 2. Get current product ID
+    var currentProductId = "gid://shopify/Product/{{ product.id }}";
+    
+    // 3. Logic: Check if rules exist and if product is included (OR if it applies to all)
+    if (rules) {
+        
+      // Helper: Check if product matches
+      var productMatches = rules.products && rules.products.includes(currentProductId);
+      
+      // OPTIONAL: If you want it to apply to ALL products dynamically, you can add a flag in your JSON like "allProducts": true
+      // if (rules.allProducts || productMatches) { ... }
+      
+      if (productMatches) {
+        var widget = document.querySelector('.volume-discount-widget');
+        var percentSpan = document.getElementById('discount-percent');
+        var qtySpan = document.getElementById('discount-qty');
+        
+        if (widget && percentSpan && qtySpan) {
+          // Set the Percentage
+          percentSpan.innerText = rules.percentOff;
+          
+          // Set the Quantity (Dynamic) - Defaults to 2 if not found
+          qtySpan.innerText = rules.quantity || 2; 
+          
+          // Show the widget
+          widget.style.display = 'block';
+        }
+      }
+    }
+  })();
+</script>
 
 {% schema %}
 {
-  "name": "Star Rating",
+  "name": "Volume Discount Msg",
   "target": "section",
-  "settings": [
-    { "type": "product", "id": "product", "label": "product", "autofill": true },
-    { "type": "color", "id": "colour", "label": "Star Colour", "default": "#ff0000" }
-  ]
+  "settings": []
 }
 {% endschema %}
-

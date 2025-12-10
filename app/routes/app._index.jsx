@@ -1,243 +1,329 @@
-import { useEffect } from "react";
-import { useFetcher } from "react-router";
-import { useAppBridge } from "@shopify/app-bridge-react";
-import { boundary } from "@shopify/shopify-app-react-router/server";
+// import { useState, useEffect } from "react";
+// import { useFetcher, useLoaderData } from "react-router"; // Updated import for React Router 7
+// import {
+//   Page,
+//   Layout,
+//   Card,
+//   Button,
+//   TextField,
+//   BlockStack,
+//   Text,
+//   Banner,
+// } from "@shopify/polaris";
+// import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+// import { authenticate } from "../shopify.server";
+
+// // 1. Loader: Read the current config from Shop Metafields
+// export const loader = async ({ request }) => {
+//   const { admin } = await authenticate.admin(request);
+
+//   const response = await admin.graphql(
+//     `#graphql
+//     query getSettings {
+//       shop {
+//         metafield(namespace: "volume_discount", key: "rules") {
+//           value
+//         }
+//       }
+//     }`
+//   );
+
+//   const data = await response.json();
+//   const settings = data.data.shop.metafield?.value
+//     ? JSON.parse(data.data.shop.metafield.value)
+//     : {};
+
+//   return settings;
+// };
+
+// // 2. Action: Save the config to Shop Metafields
+// export const action = async ({ request }) => {
+//   const { admin } = await authenticate.admin(request);
+//   const formData = await request.formData();
+
+//   const products = JSON.parse(formData.get("products"));
+//   const percentOff = formData.get("percentOff");
+//   const minQty = 2; // Fixed as per requirements
+
+//   const value = JSON.stringify({ products, percentOff, minQty });
+
+//   const response = await admin.graphql(
+//     `#graphql
+//     mutation CreateMetafieldDefinition($definition: MetafieldsSetInput!) {
+//       metafieldsSet(metafields: [$definition]) {
+//         metafields {
+//           key
+//           namespace
+//           value
+//         }
+//         userErrors {
+//           field
+//           message
+//         }
+//       }
+//     }`,
+//     {
+//       variables: {
+//         definition: {
+//           namespace: "volume_discount",
+//           key: "rules",
+//           ownerId: (await admin.graphql(`{ shop { id } }`).then(r => r.json())).data.shop.id, // We need Shop ID
+//           type: "json",
+//           value,
+//         },
+//       },
+//     }
+//   );
+
+//   return { status: "success" };
+// };
+
+// export default function Index() {
+//   const loaderData = useLoaderData();
+//   const fetcher = useFetcher();
+//   const shopify = useAppBridge();
+
+//   const [percent, setPercent] = useState(loaderData?.percentOff || "10");
+//   const [selectedProducts, setSelectedProducts] = useState(loaderData?.products || []);
+
+//   const selectProducts = async () => {
+//     const selected = await shopify.resourcePicker({
+//       type: "product",
+//       action: "select", // Allow multiple selection
+//       selectionIds: selectedProducts.map(id => ({ id })),
+//     });
+
+//     if (selected) {
+//       setSelectedProducts(selected.map((p) => p.id));
+//     }
+//   };
+
+//   const submit = () => {
+//     fetcher.submit(
+//       {
+//         products: JSON.stringify(selectedProducts),
+//         percentOff: percent,
+//       },
+//       { method: "POST" }
+//     );
+//   };
+
+//   useEffect(() => {
+//     if (fetcher.state === "idle" && fetcher.data?.status === "success") {
+//       shopify.toast.show("Discount rules saved");
+//     }
+//   }, [fetcher.state, shopify]);
+
+//   return (
+//     <Page>
+//       <TitleBar title="Volume Discount Config" />
+//       <Layout>
+//         <Layout.Section>
+//           <Card>
+//             <BlockStack gap="400">
+//               <Text variant="headingMd" as="h2">
+//                 Configure "Buy 2 Get X% Off"
+//               </Text>
+
+//               <BlockStack gap="200">
+//                 <Text>Select Products</Text>
+//                 <Button onClick={selectProducts}>
+//                   {selectedProducts.length > 0
+//                     ? `Selected ${selectedProducts.length} products`
+//                     : "Choose Products"}
+//                 </Button>
+//               </BlockStack>
+
+//               <TextField
+//                 label="Discount Percentage"
+//                 type="number"
+//                 value={percent}
+//                 onChange={setPercent}
+//                 suffix="%"
+//                 autoComplete="off"
+//               />
+
+//               <Button variant="primary" onClick={submit} loading={fetcher.state === "submitting"}>
+//                 Save Configuration
+//               </Button>
+//             </BlockStack>
+//           </Card>
+//         </Layout.Section>
+//       </Layout>
+//     </Page>
+//   );
+// }
+
+
+import { useState, useEffect } from "react";
+import { useFetcher, useLoaderData } from "react-router"; 
+import {
+  Page,
+  Layout,
+  Card,
+  Button,
+  TextField,
+  BlockStack,
+  Text,
+} from "@shopify/polaris";
+import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 
+// 1. Loader: Read the current config from Shop Metafields
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-
-  return null;
-};
-
-export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
+
   const response = await admin.graphql(
     `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
+    query getSettings {
+      shop {
+        metafield(namespace: "volume_discount", key: "rules") {
+          value
         }
-      }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
-        },
-      },
-    },
+      }
+    }`
   );
-  const responseJson = await response.json();
-  const product = responseJson.data.productCreate.product;
-  const variantId = product.variants.edges[0].node.id;
-  const variantResponse = await admin.graphql(
+
+  const data = await response.json();
+  const settings = data.data.shop.metafield?.value
+    ? JSON.parse(data.data.shop.metafield.value)
+    : {};
+
+  return settings;
+};
+
+// 2. Action: Save the config to Shop Metafields
+export const action = async ({ request }) => {
+  const { admin } = await authenticate.admin(request);
+  const formData = await request.formData();
+
+  const products = JSON.parse(formData.get("products"));
+  const percentOff = formData.get("percentOff");
+  
+  // CHANGED: We now read quantity from the form instead of hardcoding '2'
+  const quantity = formData.get("quantity"); 
+
+  // CHANGED: Saved "quantity" into the JSON object
+  const value = JSON.stringify({ products, percentOff, quantity });
+
+  // Get Shop ID dynamically to ensure the ownerId is correct
+  const shopResponse = await admin.graphql(`{ shop { id } }`);
+  const shopId = (await shopResponse.json()).data.shop.id;
+
+  const response = await admin.graphql(
     `#graphql
-    mutation shopifyReactRouterTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
+    mutation CreateMetafieldDefinition($definition: MetafieldsSetInput!) {
+      metafieldsSet(metafields: [$definition]) {
+        metafields {
+          key
+          value
+        }
+        userErrors {
+          field
+          message
         }
       }
     }`,
     {
       variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
+        definition: {
+          namespace: "volume_discount",
+          key: "rules",
+          ownerId: shopId,
+          type: "json",
+          value,
+        },
       },
-    },
+    }
   );
-  const variantResponseJson = await variantResponse.json();
 
-  return {
-    product: responseJson.data.productCreate.product,
-    variant: variantResponseJson.data.productVariantsBulkUpdate.productVariants,
-  };
+  return { status: "success" };
 };
 
 export default function Index() {
+  const loaderData = useLoaderData();
   const fetcher = useFetcher();
   const shopify = useAppBridge();
-  const isLoading =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST";
+
+  const [percent, setPercent] = useState(loaderData?.percentOff || "10");
+  // CHANGED: Added state for Quantity (defaults to 2 if not set)
+  const [quantity, setQuantity] = useState(loaderData?.quantity || "2");
+  const [selectedProducts, setSelectedProducts] = useState(loaderData?.products || []);
+
+  const selectProducts = async () => {
+    const selected = await shopify.resourcePicker({
+      type: "product",
+      action: "select", 
+      selectionIds: selectedProducts.map(id => ({ id })),
+    });
+
+    if (selected) {
+      setSelectedProducts(selected.map((p) => p.id));
+    }
+  };
+
+  const submit = () => {
+    fetcher.submit(
+      {
+        products: JSON.stringify(selectedProducts),
+        percentOff: percent,
+        quantity: quantity, // CHANGED: Sending quantity to backend
+      },
+      { method: "POST" }
+    );
+  };
 
   useEffect(() => {
-    if (fetcher.data?.product?.id) {
-      shopify.toast.show("Product created");
+    if (fetcher.state === "idle" && fetcher.data?.status === "success") {
+      shopify.toast.show("Discount rules saved");
     }
-  }, [fetcher.data?.product?.id, shopify]);
-  const generateProduct = () => fetcher.submit({}, { method: "POST" });
+  }, [fetcher.state, shopify]);
 
   return (
-    <s-page heading="Shopify app template">
-      <s-button slot="primary-action" onClick={generateProduct}>
-        Generate a product
-      </s-button>
+    <Page>
+      <TitleBar title="Volume Discount Config" />
+      <Layout>
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="400">
+              <Text variant="headingMd" as="h2">
+                Configure Volume Discount
+              </Text>
 
-      <s-section heading="Congrats on creating a new Shopify app 🎉">
-        <s-paragraph>
-          This embedded app template uses{" "}
-          <s-link
-            href="https://shopify.dev/docs/apps/tools/app-bridge"
-            target="_blank"
-          >
-            App Bridge
-          </s-link>{" "}
-          interface examples like an{" "}
-          <s-link href="/app/additional">additional page in the app nav</s-link>
-          , as well as an{" "}
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql"
-            target="_blank"
-          >
-            Admin GraphQL
-          </s-link>{" "}
-          mutation demo, to provide a starting point for app development.
-        </s-paragraph>
-      </s-section>
-      <s-section heading="Get started with products">
-        <s-paragraph>
-          Generate a product with GraphQL and get the JSON output for that
-          product. Learn more about the{" "}
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
-            target="_blank"
-          >
-            productCreate
-          </s-link>{" "}
-          mutation in our API references.
-        </s-paragraph>
-        <s-stack direction="inline" gap="base">
-          <s-button
-            onClick={generateProduct}
-            {...(isLoading ? { loading: true } : {})}
-          >
-            Generate a product
-          </s-button>
-          {fetcher.data?.product && (
-            <s-button
-              onClick={() => {
-                shopify.intents.invoke?.("edit:shopify/Product", {
-                  value: fetcher.data?.product?.id,
-                });
-              }}
-              target="_blank"
-              variant="tertiary"
-            >
-              Edit product
-            </s-button>
-          )}
-        </s-stack>
-        {fetcher.data?.product && (
-          <s-section heading="productCreate mutation">
-            <s-stack direction="block" gap="base">
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <pre style={{ margin: 0 }}>
-                  <code>{JSON.stringify(fetcher.data.product, null, 2)}</code>
-                </pre>
-              </s-box>
+              <BlockStack gap="200">
+                <Text>Select Products</Text>
+                <Button onClick={selectProducts}>
+                  {selectedProducts.length > 0
+                    ? `Selected ${selectedProducts.length} products`
+                    : "Choose Products"}
+                </Button>
+              </BlockStack>
 
-              <s-heading>productVariantsBulkUpdate mutation</s-heading>
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <pre style={{ margin: 0 }}>
-                  <code>{JSON.stringify(fetcher.data.variant, null, 2)}</code>
-                </pre>
-              </s-box>
-            </s-stack>
-          </s-section>
-        )}
-      </s-section>
+              {/* CHANGED: Added Quantity Input Field */}
+              <TextField
+                label="Buy Quantity (e.g. Buy 2, Buy 3)"
+                type="number"
+                value={quantity}
+                onChange={setQuantity}
+                autoComplete="off"
+              />
 
-      <s-section slot="aside" heading="App template specs">
-        <s-paragraph>
-          <s-text>Framework: </s-text>
-          <s-link href="https://reactrouter.com/" target="_blank">
-            React Router
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>Interface: </s-text>
-          <s-link
-            href="https://shopify.dev/docs/api/app-home/using-polaris-components"
-            target="_blank"
-          >
-            Polaris web components
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>API: </s-text>
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql"
-            target="_blank"
-          >
-            GraphQL
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>Database: </s-text>
-          <s-link href="https://www.prisma.io/" target="_blank">
-            Prisma
-          </s-link>
-        </s-paragraph>
-      </s-section>
+              <TextField
+                label="Discount Percentage"
+                type="number"
+                value={percent}
+                onChange={setPercent}
+                suffix="%"
+                autoComplete="off"
+              />
 
-      <s-section slot="aside" heading="Next steps">
-        <s-unordered-list>
-          <s-list-item>
-            Build an{" "}
-            <s-link
-              href="https://shopify.dev/docs/apps/getting-started/build-app-example"
-              target="_blank"
-            >
-              example app
-            </s-link>
-          </s-list-item>
-          <s-list-item>
-            Explore Shopify&apos;s API with{" "}
-            <s-link
-              href="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
-              target="_blank"
-            >
-              GraphiQL
-            </s-link>
-          </s-list-item>
-        </s-unordered-list>
-      </s-section>
-    </s-page>
+              <Button variant="primary" onClick={submit} loading={fetcher.state === "submitting"}>
+                Save Configuration
+              </Button>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }
-
-export const headers = (headersArgs) => {
-  return boundary.headers(headersArgs);
-};

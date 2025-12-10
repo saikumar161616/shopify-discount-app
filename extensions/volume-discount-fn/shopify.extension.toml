@@ -3,7 +3,7 @@ api_version = "2025-01"
 [[extensions]]
 name = "t:name"
 handle = "volume-discount-fn"
-type = "function"
+type = "product_discounts"
 uid = "765ae274-2507-da32-0bc8-186fd0ef0505e19418b4"
 description = "t:description"
 
