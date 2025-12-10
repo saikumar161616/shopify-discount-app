@@ -1,5 +1,5 @@
 // import { useState, useEffect } from "react";
-// import { useFetcher, useLoaderData } from "react-router"; // Updated import for React Router 7
+// import { useFetcher, useLoaderData } from "react-router";
 // import {
 //   Page,
 //   Layout,
@@ -8,7 +8,6 @@
 //   TextField,
 //   BlockStack,
 //   Text,
-//   Banner,
 // } from "@shopify/polaris";
 // import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 // import { authenticate } from "../shopify.server";
@@ -43,9 +42,16 @@
 
 //   const products = JSON.parse(formData.get("products"));
 //   const percentOff = formData.get("percentOff");
-//   const minQty = 2; // Fixed as per requirements
 
-//   const value = JSON.stringify({ products, percentOff, minQty });
+//   // CHANGED: We now read quantity from the form instead of hardcoding '2'
+//   const quantity = formData.get("quantity");
+
+//   // CHANGED: Saved "quantity" into the JSON object
+//   const value = JSON.stringify({ products, percentOff, quantity });
+
+//   // Get Shop ID dynamically to ensure the ownerId is correct
+//   const shopResponse = await admin.graphql(`{ shop { id } }`);
+//   const shopId = (await shopResponse.json()).data.shop.id;
 
 //   const response = await admin.graphql(
 //     `#graphql
@@ -53,7 +59,6 @@
 //       metafieldsSet(metafields: [$definition]) {
 //         metafields {
 //           key
-//           namespace
 //           value
 //         }
 //         userErrors {
@@ -67,7 +72,7 @@
 //         definition: {
 //           namespace: "volume_discount",
 //           key: "rules",
-//           ownerId: (await admin.graphql(`{ shop { id } }`).then(r => r.json())).data.shop.id, // We need Shop ID
+//           ownerId: shopId,
 //           type: "json",
 //           value,
 //         },
@@ -84,12 +89,31 @@
 //   const shopify = useAppBridge();
 
 //   const [percent, setPercent] = useState(loaderData?.percentOff || "10");
+//   // CHANGED: Added state for Quantity (defaults to 2 if not set)
+//   const [quantity, setQuantity] = useState(loaderData?.quantity || "2");
 //   const [selectedProducts, setSelectedProducts] = useState(loaderData?.products || []);
+
+//   // VALIDATION LOGIC: Limit Percent to 1 - 80
+//   const handlePercentChange = (newValue) => {
+//     // 1. Allow user to clear the field (empty string)
+//     if (newValue === "") {
+//       setPercent("");
+//       return;
+//     }
+
+//     const val = parseInt(newValue, 10);
+
+//     // 2. Only update if it's a number and within 1-80
+//     if (!isNaN(val) && val >= 1 && val <= 80) {
+//       setPercent(newValue);
+//     }
+//   };
 
 //   const selectProducts = async () => {
 //     const selected = await shopify.resourcePicker({
 //       type: "product",
-//       action: "select", // Allow multiple selection
+//       action: "select",
+//       multiple: true,
 //       selectionIds: selectedProducts.map(id => ({ id })),
 //     });
 
@@ -103,6 +127,7 @@
 //       {
 //         products: JSON.stringify(selectedProducts),
 //         percentOff: percent,
+//         quantity: quantity, // CHANGED: Sending quantity to backend
 //       },
 //       { method: "POST" }
 //     );
@@ -122,7 +147,7 @@
 //           <Card>
 //             <BlockStack gap="400">
 //               <Text variant="headingMd" as="h2">
-//                 Configure "Buy 2 Get X% Off"
+//                 Configure Volume Discount
 //               </Text>
 
 //               <BlockStack gap="200">
@@ -134,13 +159,34 @@
 //                 </Button>
 //               </BlockStack>
 
+//               {/* CHANGED: Added Quantity Input Field */}
 //               <TextField
+//                 label="Buy Quantity (e.g. Buy 2, Buy 3)"
+//                 type="number"
+//                 value={quantity}
+//                 onChange={setQuantity}
+//                 autoComplete="off"
+//               />
+
+//               {/* <TextField
 //                 label="Discount Percentage"
 //                 type="number"
 //                 value={percent}
 //                 onChange={setPercent}
 //                 suffix="%"
 //                 autoComplete="off"
+//               /> */}
+
+//               <TextField
+//                 label="Discount Percentage (1-80%)"
+//                 type="number"
+//                 value={percent}
+//                 onChange={handlePercentChange} // <--- USE THE VALIDATION HANDLER
+//                 suffix="%"
+//                 autoComplete="off"
+//                 min={1} // HTML hint
+//                 max={80} // HTML hint
+//                 helpText="Enter a value between 1 and 80"
 //               />
 
 //               <Button variant="primary" onClick={submit} loading={fetcher.state === "submitting"}>
@@ -155,8 +201,12 @@
 // }
 
 
+
+
+
+
 import { useState, useEffect } from "react";
-import { useFetcher, useLoaderData } from "react-router"; 
+import { useFetcher, useLoaderData } from "react-router";
 import {
   Page,
   Layout,
@@ -165,6 +215,7 @@ import {
   TextField,
   BlockStack,
   Text,
+  InlineError, 
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -199,14 +250,11 @@ export const action = async ({ request }) => {
 
   const products = JSON.parse(formData.get("products"));
   const percentOff = formData.get("percentOff");
-  
-  // CHANGED: We now read quantity from the form instead of hardcoding '2'
-  const quantity = formData.get("quantity"); 
+  const quantity = formData.get("quantity");
 
-  // CHANGED: Saved "quantity" into the JSON object
   const value = JSON.stringify({ products, percentOff, quantity });
 
-  // Get Shop ID dynamically to ensure the ownerId is correct
+  // Get Shop ID dynamically
   const shopResponse = await admin.graphql(`{ shop { id } }`);
   const shopId = (await shopResponse.json()).data.shop.id;
 
@@ -246,28 +294,83 @@ export default function Index() {
   const shopify = useAppBridge();
 
   const [percent, setPercent] = useState(loaderData?.percentOff || "10");
-  // CHANGED: Added state for Quantity (defaults to 2 if not set)
   const [quantity, setQuantity] = useState(loaderData?.quantity || "2");
   const [selectedProducts, setSelectedProducts] = useState(loaderData?.products || []);
+
+  // Validation Error States
+  const [errors, setErrors] = useState({});
+
+  // VALIDATION LOGIC: Limit Percent to 1 - 80
+  const handlePercentChange = (newValue) => {
+    if (newValue === "") {
+      setPercent("");
+      return;
+    }
+    const val = parseInt(newValue, 10);
+    if (!isNaN(val) && val >= 1 && val <= 80) {
+      setPercent(newValue);
+      // Clear error if valid
+      if (errors.percent) setErrors({ ...errors, percent: null });
+    }
+  };
+
+  const handleQuantityChange = (newValue) => {
+    setQuantity(newValue);
+    if (newValue && parseInt(newValue) > 0) {
+       if (errors.quantity) setErrors({ ...errors, quantity: null });
+    }
+  }
 
   const selectProducts = async () => {
     const selected = await shopify.resourcePicker({
       type: "product",
-      action: "select", 
+      action: "select",
+      multiple: true,
       selectionIds: selectedProducts.map(id => ({ id })),
     });
 
     if (selected) {
       setSelectedProducts(selected.map((p) => p.id));
+      // Clear product error if products are selected
+      if (selected.length > 0) setErrors({ ...errors, products: null });
     }
   };
 
   const submit = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    // 1. Validate Products
+    if (selectedProducts.length === 0) {
+      newErrors.products = "Please select at least one product.";
+      isValid = false;
+    }
+
+    // 2. Validate Quantity
+    if (!quantity || parseInt(quantity) < 1) {
+      newErrors.quantity = "Quantity is required and must be at least 1.";
+      isValid = false;
+    }
+
+    // 3. Validate Percentage
+    if (!percent) {
+      newErrors.percent = "Discount percentage is required.";
+      isValid = false;
+    }
+
+    if (!isValid) {
+      setErrors(newErrors);
+      shopify.toast.show("Please fix the errors before saving.");
+      return;
+    }
+
+    // If valid, clear errors and submit
+    setErrors({});
     fetcher.submit(
       {
         products: JSON.stringify(selectedProducts),
         percentOff: percent,
-        quantity: quantity, // CHANGED: Sending quantity to backend
+        quantity: quantity,
       },
       { method: "POST" }
     );
@@ -290,31 +393,42 @@ export default function Index() {
                 Configure Volume Discount
               </Text>
 
+              {/* Product Selection Section */}
               <BlockStack gap="200">
                 <Text>Select Products</Text>
-                <Button onClick={selectProducts}>
+                <Button onClick={selectProducts} tone={errors.products ? "critical" : undefined}>
                   {selectedProducts.length > 0
                     ? `Selected ${selectedProducts.length} products`
                     : "Choose Products"}
                 </Button>
+                {errors.products && (
+                  <InlineError message={errors.products} fieldID="product-picker" />
+                )}
               </BlockStack>
 
-              {/* CHANGED: Added Quantity Input Field */}
+              {/* Quantity Field */}
               <TextField
                 label="Buy Quantity (e.g. Buy 2, Buy 3)"
                 type="number"
                 value={quantity}
-                onChange={setQuantity}
+                onChange={handleQuantityChange}
                 autoComplete="off"
+                error={errors.quantity} // Shows red error text if invalid
+                min={1}
               />
 
+              {/* Percentage Field */}
               <TextField
-                label="Discount Percentage"
+                label="Discount Percentage (1-80%)"
                 type="number"
                 value={percent}
-                onChange={setPercent}
+                onChange={handlePercentChange}
                 suffix="%"
                 autoComplete="off"
+                min={1}
+                max={80}
+                helpText="Enter a value between 1 and 80"
+                error={errors.percent} // Shows red error text if invalid
               />
 
               <Button variant="primary" onClick={submit} loading={fetcher.state === "submitting"}>
