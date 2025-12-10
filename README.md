@@ -90,10 +90,14 @@ To display the discount message on your store:
 
 ## Limitations & Next Steps
 
-  * **Single Rule Support:** Currently, the app applies one global rule to selected products.
-      * *Next Step:* Support multiple tiered rules (e.g., Buy 2 get 10%, Buy 3 get 20%).
-  * **Styling:** The widget uses inline styles.
-      * *Next Step:* Add design controls (colors, padding) to the Theme Block settings schema.
+Single Rule Support (Tiers): Currently, the app applies one fixed rule (e.g., "Buy 2") to the selected products.
+Next Step: Support multiple tiered thresholds within a single rule (e.g., Buy 2 get 10%, Buy 3 get 20%).
+
+Multiple Discount Groups: The app currently supports only one global configuration. You cannot set different rules for different products simultaneously (e.g., 10% off for Socks vs. 20% off for Shirts).
+Next Step: Implement a "Rule Builder" UI to allow saving multiple distinct discount configurations.
+
+Styling: The widget uses inline styles.
+Next Step: Add design controls (colors, padding) to the Theme Block settings schema.
 
 ```
 ```
