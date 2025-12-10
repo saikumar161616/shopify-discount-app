@@ -66,11 +66,14 @@ The app persists settings to the Shop's Metafields to share data between the Adm
       "percentOff": "10"
     }
     ```
+  1. Admin UI (/app): Built with React. Allows merchants to select products, define the quantity threshold, and set the discount percentage.
+  2. Checkout Function (/extensions/volume-discount-fn): A Shopify Function that reads the Metafield configuration and applies discounts to eligible   cart lines.
+  3. Theme Block (/extensions/volume-discount-theme): A Liquid block that dynamically displays the active offer (e.g., "Buy 5, Get 50% Off") on the Product Page.
 
 ### **Core Components**
 
-1.  **Admin UI (`/app`)**: Built with React & Polaris. Allows merchants to select products and define discount thresholds.
-2.  **Checkout Function (`/extensions/volume-discount-fn`)**: A Rust/JS-based Shopify Function that reads the Metafield and applies discounts to eligible cart lines.
+1.  **Admin UI (`/app`)**: Built with React. Allows merchants to select products and define discount thresholds.
+2.  **Checkout Function (`/extensions/volume-discount-fn`)**: A JS-based Shopify Function that reads the Metafield and applies discounts to eligible cart lines.
 3.  **Theme Block (`/extensions/volume-discount-theme`)**: A Liquid block that displays the active offer on the Product Page.
 
 -----
